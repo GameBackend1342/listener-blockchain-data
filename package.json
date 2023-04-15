@@ -1,0 +1,25 @@
+{
+    "name": "listener-blockchain-data",
+    "version": "1.0.0",
+    "main": "index.js",
+    "scripts": {
+        "start": "ts-node index.ts",
+        "test": "ts-node test/androids.ts",
+        "build": "tsc && cp -rf package.json dist/ && cd dist && npm i && cd .."
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@sentry/serverless": "^7.48.0",
+        "alchemy-sdk": "^2.7.0",
+        "ethers": "^6.3.0"
+    },
+    "devDependencies": {
+        "dotenv": "^16.0.3",
+        "prettier": "2.8.7",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.0.4"
+    },
+    "description": ""
+}
