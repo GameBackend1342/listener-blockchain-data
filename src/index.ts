@@ -1,7 +1,10 @@
 import * as Sentry from '@sentry/serverless';
+import * as AWS from 'aws-sdk';
 import * as dotenv from 'dotenv';
 import { AlchemyProvider, ethers } from 'ethers';
 import { default as CONSTANTS } from './constants/index';
+
+const sqs = new AWS.SQS({ apiVersion: '2012-11-05' });
 
 dotenv.config();
 Sentry.AWSLambda.init({
@@ -25,6 +28,8 @@ export async function handlerEvent({
     tokenId: number;
     _network: any;
 }): Promise<any> {
+    console.log({ nftType, tokenId, _network });
+
     if (CONSTANTS[nftType] === undefined) {
         throw new Error('Invalid NFT type: ' + nftType);
     }
@@ -47,6 +52,12 @@ export async function handlerEvent({
     }
 }
 
+const sanitize = (json: string) => {
+    const sanitized = json.replace(/\\"/g, '"');
+    console.log('Was sanitized: ', sanitized);
+    return sanitized;
+};
+
 /**
  * Executes a callback function that converts the body of an SQS queue event to JSON, handles each event with a given handler,
  * and returns a success response with the results.
@@ -54,18 +65,14 @@ export async function handlerEvent({
  * @param context - The AWS Lambda context object.
  * @returns A success response object with a message and the results of processing each event.
  */
-const callback = async (event: any, context: any) => {
+const callbackLambda = async (event: any, context: any, callback: any) => {
     context.callbackWaitsForEmptyEventLoop = false;
     // Converte o body da fila SQS para JSON
-    const events = event.Records.map(({ body }: any) => JSON.parse(body));
-
+    const events = event.Records.map(({ body }: any) => JSON.parse(sanitize(body)));
     const res = await Promise.all(events.map((ev: any) => handlerEvent(ev)));
 
-    return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: { message: 'Success', res },
-    };
+    // Call lambda generate metadata
+    callback(JSON.stringify(res[0] || {}));
 };
 
-exports.handler = Sentry.AWSLambda.wrapHandler(callback);
+exports.handler = Sentry.AWSLambda.wrapHandler(callbackLambda);

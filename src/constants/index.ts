@@ -1,6 +1,6 @@
 import ANDROID_ABI from '../abis/android.json';
 import EQUIPMENT_ABI from '../abis/equipment.json';
-import MEDALION_ABI from '../abis/medalion.json';
+import MEDALLION_ABI from '../abis/medallion.json';
 import SPACESHIP_ABI from '../abis/spaceship.json';
 
 const CONSTANTS: any = {
@@ -16,8 +16,8 @@ const CONSTANTS: any = {
         ABI: EQUIPMENT_ABI,
         ADDRESS: '0x2a9B59F176EeE58B09624EE0A570eE85dC8e3Bc7',
     },
-    medalion: {
-        ABI: MEDALION_ABI,
+    medallion: {
+        ABI: MEDALLION_ABI,
         ADDRESS: '0x7758B51343e42B79a14c751b770990fbf00695bf',
     },
 };
