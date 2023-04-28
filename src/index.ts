@@ -1,10 +1,7 @@
 import * as Sentry from '@sentry/serverless';
-import * as AWS from 'aws-sdk';
 import * as dotenv from 'dotenv';
 import { AlchemyProvider, ethers } from 'ethers';
 import { default as CONSTANTS } from './constants/index';
-
-const sqs = new AWS.SQS({ apiVersion: '2012-11-05' });
 
 dotenv.config();
 Sentry.AWSLambda.init({
@@ -22,7 +19,7 @@ Object.assign(CONSTANTS, { COIN: process.env.COIN, API_KEY_ALCHEMY: process.env.
 export async function handlerEvent({
     nftType = '',
     tokenId = 0,
-    _network = '',
+    _network = null,
 }: {
     nftType: string;
     tokenId: number;
@@ -46,16 +43,29 @@ export async function handlerEvent({
         const data = new Map(blockchainResponse.filter(([key, value]: any) => key !== '' && value !== ''));
         const response = Object.fromEntries(data);
 
-        return Object.assign(response, { nftType });
+        return Object.assign(response, { nftType, tokenId });
     } catch (error: any) {
         throw new Error(error);
     }
 }
 
-const sanitize = (json: string) => {
-    const sanitized = json.replace(/\\"/g, '"');
-    console.log('Was sanitized: ', sanitized);
-    return sanitized;
+/**
+ * Escapes special characters in a JSON string.
+ *
+ * @param json - The JSON string to escape.
+ * @returns The escaped JSON string.
+ */
+const escape = (json: string) => {
+    return json
+        .replace(/\\n/g, '\\n')
+        .replace(/\\'/g, '\\"')
+        .replace(/\\"/g, '\\"')
+        .replace(/\\&/g, '\\&')
+        .replace(/\\r/g, '\\r')
+        .replace(/\\t/g, '\\t')
+        .replace(/\\b/g, '\\b')
+        .replace(/\\f/g, '\\f')
+        .replace(/\\/g, '');
 };
 
 /**
@@ -65,14 +75,19 @@ const sanitize = (json: string) => {
  * @param context - The AWS Lambda context object.
  * @returns A success response object with a message and the results of processing each event.
  */
-const callbackLambda = async (event: any, context: any, callback: any) => {
+export const callbackLambda = async (event: any, context: any) => {
     context.callbackWaitsForEmptyEventLoop = false;
     // Converte o body da fila SQS para JSON
-    const events = event.Records.map(({ body }: any) => JSON.parse(sanitize(body)));
+    //console.log('Event: ', event.Records[0].body);
+    const events = event.Records.map(({ body }: any) => JSON.parse(escape(body)));
+    console.log('Events: ', events);
     const res = await Promise.all(events.map((ev: any) => handlerEvent(ev)));
 
     // Call lambda generate metadata
-    callback(JSON.stringify(res[0] || {}));
+    return {
+        statusCode: 200,
+        body: JSON.stringify(res),
+    };
 };
 
 exports.handler = Sentry.AWSLambda.wrapHandler(callbackLambda);
