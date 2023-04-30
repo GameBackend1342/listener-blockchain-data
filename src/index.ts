@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/serverless';
 import * as dotenv from 'dotenv';
-import { AlchemyProvider, ethers } from 'ethers';
-import { default as CONSTANTS } from './constants/index';
+import { default as CONSTANTS } from './config/constants';
+import { factory } from './core/factory';
+import { NftType } from './core/nft/types';
 
 dotenv.config();
+
 Sentry.AWSLambda.init({
     dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1.0,
@@ -17,36 +19,21 @@ Object.assign(CONSTANTS, { COIN: process.env.COIN, API_KEY_ALCHEMY: process.env.
  * @returns {Promise<void>}
  */
 export async function handlerEvent({
-    nftType = '',
-    tokenId = 0,
-    _network = null,
+    nftType,
+    tokenId,
+    network,
 }: {
-    nftType: string;
+    nftType: NftType;
     tokenId: number;
-    _network: any;
+    network: any;
 }): Promise<any> {
-    console.log({ nftType, tokenId, _network });
+    console.log({ nftType, tokenId, network });
 
-    if (CONSTANTS[nftType] === undefined) {
-        throw new Error('Invalid NFT type: ' + nftType);
-    }
+    const result = await factory(tokenId.toString(), nftType, network);
 
-    const alchemyProvider = new AlchemyProvider(_network ?? CONSTANTS.COIN, CONSTANTS.API_KEY_ALCHEMY);
-    const agnosticContractProvider = new ethers.Contract(
-        CONSTANTS[nftType].ADDRESS,
-        CONSTANTS[nftType].ABI,
-        alchemyProvider,
-    );
+    console.log('result', result);
 
-    try {
-        const blockchainResponse = await agnosticContractProvider.attributes(tokenId);
-        const data = new Map(blockchainResponse.filter(([key, value]: any) => key !== '' && value !== ''));
-        const response = Object.fromEntries(data);
-
-        return Object.assign(response, { nftType, tokenId });
-    } catch (error: any) {
-        throw new Error(error);
-    }
+    return result;
 }
 
 /**
