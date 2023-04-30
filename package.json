@@ -6,7 +6,12 @@
         "start": "ts-node index.ts",
         "test": "ts-node test/androids.ts",
         "jest": "jest",
-        "build": "tsc && cp -rf package.json dist/ && cd dist && npm i && cd .."
+        "build": "tsc && cp -rf package.json dist/ && cd dist && npm i && cd ..",
+        "compile": "tsc",
+        "zip": "echo 'zipping pode demorar' && npx rimraf ./lambda.zip && zip -r ./lambda.zip dist node_modules package.json .npmrc .env",
+        "install-prod": "npx rimraf ./node_modules && npm i --omit=dev",
+        "restore-deps": "npm i",
+        "lambda": "npm run compile && npm run install-prod && npm run zip && npm run restore-deps"
     },
     "keywords": [],
     "author": "",
